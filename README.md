@@ -69,20 +69,44 @@ boot
 
 Place the iPXE bootloader binary (`undionly.kpxe`, available from https://boot.ipxe.org/undionly.kpxe) in the `tftp-data` volume (mounted at `/tftpboot` inside `pxe-server`).
 
+> **Tip — using a local directory instead of a named volume:**
+> Replace the `harvester-files` and `tftp-data` named volumes in `docker-compose.yml` with bind mounts so you can copy files directly from the host:
+> ```yaml
+> volumes:
+>   - ./harvester-files:/var/www/harvester
+>   - ./tftpboot:/tftpboot
+> ```
+
 ### 2. Start the lab
 
+Docker Compose v2:
 ```bash
 docker compose up --build -d
 ```
+
+Docker Compose v1:
+```bash
+docker-compose up --build -d
+```
+
+The `qemu-node` service waits until `pxe-server` passes its health check (both `dnsmasq` and `nginx` running) before the VM starts, so there is no race condition on first boot.
 
 ### 3. Watch the installation
 
 Open your browser at **http://localhost:6080** to see the Harvester installer running inside the QEMU VM via the noVNC viewer.
 
+> **Security note:** The noVNC console is unauthenticated. It is intended for local lab use only — do not expose port 6080 to untrusted networks.
+
 ### 4. Stop the lab
 
+Docker Compose v2:
 ```bash
 docker compose down
+```
+
+Docker Compose v1:
+```bash
+docker-compose down
 ```
 
 ## File Layout

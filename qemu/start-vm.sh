@@ -26,6 +26,12 @@ ip link set br0 up
 CONTAINER_CIDR=$(ip -4 addr show eth0 | awk '/inet / {print $2}')
 GW=$(ip route show default | awk '/via/ {print $3; exit}')
 
+# Validate that we actually obtained an IP and a default gateway.
+if [ -z "${CONTAINER_CIDR}" ] || [ -z "${GW}" ]; then
+    echo "Error: Container IP (CONTAINER_CIDR='${CONTAINER_CIDR}') or default gateway (GW='${GW}') not found. Aborting bridge setup." >&2
+    exit 1
+fi
+
 # 4. Move eth0 into the bridge and re-assign the IP to the bridge itself
 ip addr del "${CONTAINER_CIDR}" dev eth0 || true
 ip link set eth0 master br0
@@ -35,8 +41,13 @@ ip route add default via "${GW}" dev br0 || true
 
 # ---------------------------------------------------------------------------
 # Launch QEMU
-#   -boot order=n  → network first (PXE)
-#   -vnc 0.0.0.0:0 → listen on TCP 5900 (noVNC connects here)
+#   -boot order=nc  → network first (PXE install), then disk on subsequent boots
+#   -display vnc    → listen on TCP 5900; bound to 0.0.0.0 so the novnc-viewer
+#                     container can reach it across the Docker bridge network
+#                     (VNC port 5900 is not exposed to the host)
+#   -serial mon:stdio → serial console on stdout for logging
+#   NOTE: cache=writeback favours performance; in a test lab this is acceptable.
+#         Use cache=writethrough or cache=none for stronger durability.
 # ---------------------------------------------------------------------------
 exec qemu-system-x86_64 \
     -name harvester-node \
@@ -47,7 +58,7 @@ exec qemu-system-x86_64 \
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
     -device virtio-net-pci,netdev=net0,mac=52:54:00:12:34:56 \
     -drive file="${DISK}",if=virtio,format=qcow2,cache=writeback \
-    -boot order=n,strict=on \
-    -vnc 0.0.0.0:0 \
-    -nographic \
+    -boot order=nc \
+    -display vnc=0.0.0.0:0 \
+    -serial mon:stdio \
     -no-reboot

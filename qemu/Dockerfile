@@ -2,6 +2,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         qemu-system-x86 \
+        qemu-utils \
         iproute2 \
         bridge-utils \
     && rm -rf /var/lib/apt/lists/*

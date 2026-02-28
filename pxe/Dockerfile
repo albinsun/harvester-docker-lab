@@ -2,6 +2,10 @@ FROM alpine:3.19
 
 RUN apk add --no-cache dnsmasq nginx
 
+# Remove the default nginx server block that ships with Alpine to avoid a
+# "duplicate default_server" conflict with our harvester.conf
+RUN rm -f /etc/nginx/http.d/default.conf
+
 RUN mkdir -p /tftpboot /var/www/harvester /run/nginx /var/log/nginx
 
 COPY dnsmasq.conf /etc/dnsmasq.conf
