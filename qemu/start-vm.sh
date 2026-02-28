@@ -13,12 +13,16 @@ fi
 # and can receive DHCP from the pxe-server container.
 # ---------------------------------------------------------------------------
 
-# 1. Create a TAP device for the guest NIC
-ip tuntap add dev tap0 mode tap || true
+# 1. Create a TAP device for the guest NIC (idempotent on container restart)
+ip tuntap add dev tap0 mode tap 2>/dev/null \
+    || ip link show tap0 >/dev/null 2>&1 \
+    || { echo "Error: failed to create tap0 (is /dev/net/tun available?)" >&2; exit 1; }
 ip link set tap0 up
 
-# 2. Create a software bridge
-ip link add name br0 type bridge || true
+# 2. Create a software bridge (idempotent on container restart)
+ip link add name br0 type bridge 2>/dev/null \
+    || ip link show br0 >/dev/null 2>&1 \
+    || { echo "Error: failed to create br0" >&2; exit 1; }
 ip link set br0 up
 
 # 3. Capture the container's current IP/prefix and default gateway
