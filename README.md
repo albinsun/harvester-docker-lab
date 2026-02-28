@@ -41,31 +41,42 @@ A self-contained, lightweight test laboratory for booting and testing [Harvester
 
 ### 1. Prepare Harvester boot files
 
-Download the Harvester release artefacts and place them in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`.
+> **Note:** The full Harvester ISO (`harvester-vX.Y.Z-amd64.iso`) is **not** used for PXE boot. Instead, download the individual PXE artefacts from the [Harvester GitHub Releases](https://github.com/harvester/harvester/releases) page.
 
-Minimum files required:
+For example, for **v1.7.1** download these three files:
+
+| Release asset | Save as |
+|---|---|
+| `harvester-v1.7.1-vmlinuz-amd64` | `harvester-vmlinuz` |
+| `harvester-v1.7.1-initrd-amd64` | `harvester-initrd` |
+| `harvester-v1.7.1-rootfs-amd64.squashfs` | `harvester-rootfs.squashfs` |
+
+Place all four files (including `boot.ipxe`) in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`:
 
 ```
 /var/www/harvester/
-├── boot.ipxe          # iPXE chainload script (see example below)
-├── harvester-vmlinuz  # Harvester kernel
-├── harvester-initrd   # Harvester initial RAM disk
-└── harvester-rootfs.squashfs
+├── boot.ipxe                   # iPXE chainload script (see example below)
+├── harvester-vmlinuz           # Harvester kernel (renamed from vmlinuz-amd64)
+├── harvester-initrd            # Harvester initial RAM disk (renamed from initrd-amd64)
+└── harvester-rootfs.squashfs   # Harvester root filesystem (renamed from rootfs-amd64.squashfs)
 ```
 
-Example `boot.ipxe`:
+Example `boot.ipxe` (replace `192.168.200.2` if you change the `pxe-server` IP):
 
 ```
 #!ipxe
 kernel http://192.168.200.2/harvester-vmlinuz \
     ip=dhcp \
     rd.neednet=1 \
-    console=ttyS0 \
+    console=ttyS0,115200n8 \
+    root=live:http://192.168.200.2/harvester-rootfs.squashfs \
     harvester.install.automatic=true \
     initrd=harvester-initrd
 initrd http://192.168.200.2/harvester-initrd
 boot
 ```
+
+> **Important:** The `root=live:http://...` kernel parameter is required. Without it, the Harvester initrd cannot locate the root filesystem and the installer will not start.
 
 Place the iPXE bootloader binary (`undionly.kpxe`, available from https://boot.ipxe.org/undionly.kpxe) in the `tftp-data` volume (mounted at `/tftpboot` inside `pxe-server`).
 
