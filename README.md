@@ -41,25 +41,27 @@ A self-contained, lightweight test laboratory for booting and testing [Harvester
 
 ### 1. Prepare Harvester boot files
 
-> **Note:** The full Harvester ISO (`harvester-vX.Y.Z-amd64.iso`) is **not** used for PXE boot. Instead, download the individual PXE artefacts from the [Harvester GitHub Releases](https://github.com/harvester/harvester/releases) page.
+> **Note:** The Harvester ISO (`harvester-vX.Y.Z-amd64.iso`) is **not** used to PXE-boot the node (that uses the individual vmlinuz/initrd/squashfs files), but **it is required** by the installer as the `iso_url` source to write the OS to disk.
 
-For example, for **v1.7.1** download these three files:
+Download all four files from the [Harvester GitHub Releases](https://github.com/harvester/harvester/releases) page. For **v1.7.1**:
 
 | Release asset | Save as |
 |---|---|
 | `harvester-v1.7.1-vmlinuz-amd64` | `harvester-vmlinuz` |
 | `harvester-v1.7.1-initrd-amd64` | `harvester-initrd` |
 | `harvester-v1.7.1-rootfs-amd64.squashfs` | `harvester-rootfs.squashfs` |
+| `harvester-v1.7.1-amd64.iso` | `harvester-v1.7.1-amd64.iso` |
 
-Place all five files (including `boot.ipxe` and `harvester-config.yaml`) in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`:
+Place all six files (including `boot.ipxe` and `harvester-config.yaml`) in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`:
 
 ```
 /var/www/harvester/
-├── boot.ipxe                   # iPXE chainload script (see example below)
-├── harvester-config.yaml       # Harvester install configuration (see example below)
-├── harvester-vmlinuz           # Harvester kernel (renamed from vmlinuz-amd64)
-├── harvester-initrd            # Harvester initial RAM disk (renamed from initrd-amd64)
-└── harvester-rootfs.squashfs   # Harvester root filesystem (renamed from rootfs-amd64.squashfs)
+├── boot.ipxe                      # iPXE chainload script (see example below)
+├── harvester-config.yaml          # Harvester install configuration (see example below)
+├── harvester-vmlinuz              # Harvester kernel (renamed from vmlinuz-amd64)
+├── harvester-initrd               # Harvester initial RAM disk (renamed from initrd-amd64)
+├── harvester-rootfs.squashfs      # Harvester root filesystem (renamed from rootfs-amd64.squashfs)
+└── harvester-v1.7.1-amd64.iso    # Full ISO — referenced by iso_url in harvester-config.yaml
 ```
 
 Example `boot.ipxe` (replace `192.168.200.2` if you change the `pxe-server` IP):
@@ -96,16 +98,17 @@ os:
 install:
   mode: create
   device: /dev/vda
+  iso_url: http://192.168.200.2/harvester-v1.7.1-amd64.iso
   management_interface:
     interfaces:
-      - name: eth0
+      - name: ens3
     bond_options:
       mode: active-backup
       miimon: 100
     method: dhcp
 ```
 
-> **Note:** Inside QEMU the virtio disk is always `/dev/vda`. Do not use `/dev/sda`.
+> **Note:** Inside QEMU the virtio disk is always `/dev/vda`. The management interface is typically `ens3` (visible in the iPXE boot console — check if it differs for your version). `iso_url` must point to the full ISO served by the `pxe-server` container.
 
 Place the iPXE bootloader binary (`undionly.kpxe`, available from https://boot.ipxe.org/undionly.kpxe) in the `tftp-data` volume (mounted at `/tftpboot` inside `pxe-server`).
 
