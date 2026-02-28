@@ -1,0 +1,33 @@
+# Harvester automated installation configuration
+# Copy this file to your harvester-files volume as "harvester-config.yaml"
+# and update the values below to match your environment.
+#
+# Reference: https://docs.harvesterhci.io/v1.3/install/pxe-boot-install
+scheme_version: 1
+
+# Cluster join token (must match on all nodes in the same cluster)
+token: harvester-token
+
+os:
+  # Hostname for this node
+  hostname: harvester-node01
+  # Password for the 'rancher' user — CHANGE THIS before use
+  password: CHANGE_ME
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+
+install:
+  # "create" for the first node; "join" for additional nodes
+  mode: create
+
+  # Target disk — virtio disks appear as /dev/vda inside QEMU
+  device: /dev/vda
+
+  # Management network interface
+  management_interface:
+    interfaces:
+      - name: eth0
+    bond_options:
+      mode: active-backup
+      miimon: 100
+    method: dhcp

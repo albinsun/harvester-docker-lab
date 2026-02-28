@@ -51,11 +51,12 @@ For example, for **v1.7.1** download these three files:
 | `harvester-v1.7.1-initrd-amd64` | `harvester-initrd` |
 | `harvester-v1.7.1-rootfs-amd64.squashfs` | `harvester-rootfs.squashfs` |
 
-Place all four files (including `boot.ipxe`) in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`:
+Place all five files (including `boot.ipxe` and `harvester-config.yaml`) in the named volume **or** a local directory bind-mounted to `/var/www/harvester` inside `pxe-server`:
 
 ```
 /var/www/harvester/
 ├── boot.ipxe                   # iPXE chainload script (see example below)
+├── harvester-config.yaml       # Harvester install configuration (see example below)
 ├── harvester-vmlinuz           # Harvester kernel (renamed from vmlinuz-amd64)
 ├── harvester-initrd            # Harvester initial RAM disk (renamed from initrd-amd64)
 └── harvester-rootfs.squashfs   # Harvester root filesystem (renamed from rootfs-amd64.squashfs)
@@ -71,12 +72,40 @@ kernel http://192.168.200.2/harvester-vmlinuz \
     console=ttyS0,115200n8 \
     root=live:http://192.168.200.2/harvester-rootfs.squashfs \
     harvester.install.automatic=true \
+    harvester.install.config_url=http://192.168.200.2/harvester-config.yaml \
+    harvester.install.skipchecks=true \
     initrd=harvester-initrd
 initrd http://192.168.200.2/harvester-initrd
 boot
 ```
 
 > **Important:** The `root=live:http://...` kernel parameter is required. Without it, the Harvester initrd cannot locate the root filesystem and the installer will not start.
+>
+> **Important:** `harvester.install.config_url` is required for automatic installation. Without it, the Harvester OS boots to a login prompt instead of running the installer.
+
+Example `harvester-config.yaml` (a template is provided at `pxe/harvester-config.yaml.example`):
+
+```yaml
+scheme_version: 1
+token: harvester-token
+os:
+  hostname: harvester-node01
+  password: CHANGE_ME
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+install:
+  mode: create
+  device: /dev/vda
+  management_interface:
+    interfaces:
+      - name: eth0
+    bond_options:
+      mode: active-backup
+      miimon: 100
+    method: dhcp
+```
+
+> **Note:** Inside QEMU the virtio disk is always `/dev/vda`. Do not use `/dev/sda`.
 
 Place the iPXE bootloader binary (`undionly.kpxe`, available from https://boot.ipxe.org/undionly.kpxe) in the `tftp-data` volume (mounted at `/tftpboot` inside `pxe-server`).
 
