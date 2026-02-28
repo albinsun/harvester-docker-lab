@@ -47,15 +47,15 @@ services:
     restart: unless-stopped
 
   novnc-viewer:
-    image: dougw/novnc:1.3.0
+    image: bonigarcia/novnc:1.3.0
     container_name: novnc-viewer
     depends_on:
       - qemu-node
     networks:
       - harvester-lab
     ports:
-      - "6080:8080"
+      - "6080:6080"
     environment:
-      - REMOTE_HOST=qemu-node
-      - REMOTE_PORT=5900
+      - VNC_SERVER=qemu-node:5900
+      - AUTOCONNECT=true
     restart: unless-stopped
