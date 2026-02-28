@@ -1,0 +1,57 @@
+---
+##########################################################################
+# settings.yml — Harvester Docker Lab configuration
+#
+# Edit this file, then run:
+#   ./generate-config.sh
+#
+# That will:
+#   • Copy the Harvester artefacts into data/harvester/
+#   • Copy undionly.kpxe into data/tftpboot/
+#   • Write data/harvester/boot.ipxe
+#   • Write data/harvester/harvester-config.yaml
+##########################################################################
+
+# Harvester release version tag (used to name the ISO inside data/harvester/)
+harvester_version: v1.7.1
+
+# IP of the pxe-server container on the Docker bridge.
+# Must match the ipv4_address in docker-compose.yml.
+pxe_server_ip: 192.168.200.2
+
+# ---------------------------------------------------------------------------
+# Local file paths for Harvester artefacts.
+# generate-config.sh copies each file into data/harvester/ using the
+# standard name expected by boot.ipxe and harvester-config.yaml.
+# Leave a path as "" to skip that copy step (e.g. if the file is
+# already in place).
+# ---------------------------------------------------------------------------
+harvester_kernel_path:  ""   # e.g. /downloads/harvester-v1.7.1-vmlinuz-amd64
+harvester_ramdisk_path: ""   # e.g. /downloads/harvester-v1.7.1-initrd-amd64
+harvester_rootfs_path:  ""   # e.g. /downloads/harvester-v1.7.1-rootfs-amd64.squashfs
+harvester_iso_path:     ""   # e.g. /downloads/harvester-v1.7.1-amd64.iso
+
+# Local path to the iPXE bootloader binary.
+# generate-config.sh copies it to data/tftpboot/undionly.kpxe.
+# Download from https://boot.ipxe.org/undionly.kpxe if you don't have it.
+undionly_kpxe_path: ""   # e.g. /downloads/undionly.kpxe
+
+# Node configuration
+harvester_config:
+  hostname: harvester-node-0
+  # Password for the built-in 'rancher' user.
+  # Change this to a strong password before deploying in any non-local environment.
+  password: password1234
+  # Static token used for cluster join authentication (same on all nodes).
+  token: password1234
+
+# Install settings
+install:
+  # Target disk device.  virtio disks appear as /dev/vda inside QEMU.
+  device: /dev/vda
+  # Management NIC name as seen inside the VM.
+  # For QEMU virtio-net this is typically "ens3" — verify in the boot console.
+  management_interface: ens3
+  # Cluster VIP (optional).  Leave as empty string to skip.
+  vip: ""
+  vip_mode: dhcp

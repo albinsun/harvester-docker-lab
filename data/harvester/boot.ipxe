@@ -1,0 +1,12 @@
+#!ipxe
+kernel http://192.168.200.2/harvester-vmlinuz \
+    ip=dhcp \
+    rd.neednet=1 \
+    console=ttyS0,115200n8 \
+    root=live:http://192.168.200.2/harvester-rootfs.squashfs \
+    harvester.install.automatic=true \
+    harvester.install.config_url=http://192.168.200.2/harvester-config.yaml \
+    harvester.install.skipchecks=true \
+    initrd=harvester-initrd
+initrd http://192.168.200.2/harvester-initrd
+boot

@@ -1,0 +1,41 @@
+# Harvester automated installation configuration
+# Copy this file to your harvester-files volume as "harvester-config.yaml"
+# and update the values below to match your environment.
+#
+# Reference: https://docs.harvesterhci.io/v1.3/install/pxe-boot-install
+scheme_version: 1
+
+# Cluster join token (must match on all nodes in the same cluster)
+token: harvester-token
+
+os:
+  # Hostname for this node
+  hostname: harvester-node-0
+  # Password for the 'rancher' user.
+  # Change this to a strong password before deploying in any non-local environment.
+  password: password1234
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+
+install:
+  # "create" for the first node; "join" for additional nodes
+  mode: create
+
+  # Target disk — virtio disks appear as /dev/vda inside QEMU
+  device: /dev/vda
+
+  # URL to the Harvester ISO served by the pxe-server container.
+  # This is required for the installer to write the OS to disk.
+  # Replace the version tag and pxe-server IP if needed.
+  iso_url: http://192.168.200.2/harvester-v1.7.1-amd64.iso
+
+  # Management network interface.
+  # Inside QEMU (virtio-net) the device is typically named "ens3".
+  # Check the boot console output if you see a different name.
+  management_interface:
+    interfaces:
+      - name: ens3
+    bond_options:
+      mode: active-backup
+      miimon: 100
+    method: dhcp

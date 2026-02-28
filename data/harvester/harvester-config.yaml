@@ -1,0 +1,18 @@
+scheme_version: 1
+token: password1234
+os:
+  hostname: harvester-node-0
+  password: password1234
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+install:
+  mode: create
+  device: /dev/vda
+  iso_url: http://192.168.200.2/harvester-v1.7.1-amd64.iso
+  management_interface:
+    interfaces:
+      - name: ens3
+    bond_options:
+      mode: active-backup
+      miimon: 100
+    method: dhcp
