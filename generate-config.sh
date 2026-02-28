@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # generate-config.sh
 #
-# Reads settings.yml and writes:
-#   data/harvester/boot.ipxe
-#   data/harvester/harvester-config.yaml
+# Reads settings.yml and:
+#   1. Copies Harvester artefacts from the local paths specified in settings.yml
+#      into data/harvester/ (using the standard names expected by boot.ipxe)
+#   2. Copies undionly.kpxe from the local path specified in settings.yml
+#      into data/tftpboot/
+#   3. Writes data/harvester/boot.ipxe
+#   4. Writes data/harvester/harvester-config.yaml
 #
 # Usage:
 #   ./generate-config.sh
@@ -34,7 +38,7 @@ python3 -c "import yaml" 2>/dev/null || {
 echo "Generating configuration from settings.yml ..."
 
 python3 - "${SETTINGS}" <<'PYEOF'
-import sys, os
+import sys, os, shutil
 
 try:
     import yaml
@@ -50,15 +54,21 @@ with open(settings_path) as f:
 pxe_ip  = str(s.get('pxe_server_ip', '192.168.200.2'))
 version = str(s.get('harvester_version', 'v1.7.1'))
 
-iso_url    = s.get('harvester_iso_url',    f'http://{pxe_ip}/harvester-{version}-amd64.iso')
-kernel_url = s.get('harvester_kernel_url', f'http://{pxe_ip}/harvester-vmlinuz')
-initrd_url = s.get('harvester_ramdisk_url', f'http://{pxe_ip}/harvester-initrd')
-rootfs_url = s.get('harvester_rootfs_url', f'http://{pxe_ip}/harvester-rootfs.squashfs')
+iso_dest    = f'harvester-{version}-amd64.iso'
+kernel_dest = 'harvester-vmlinuz'
+initrd_dest = 'harvester-initrd'
+rootfs_dest = 'harvester-rootfs.squashfs'
+
+# Derived HTTP URLs (always from pxe_server_ip — served by nginx inside the container)
+iso_url    = f'http://{pxe_ip}/{iso_dest}'
+kernel_url = f'http://{pxe_ip}/{kernel_dest}'
+initrd_url = f'http://{pxe_ip}/{initrd_dest}'
+rootfs_url = f'http://{pxe_ip}/{rootfs_dest}'
 
 cfg      = s.get('harvester_config', {}) or {}
 hostname = cfg.get('hostname', 'harvester-node-0')
 password = cfg.get('password', 'password1234')
-token    = cfg.get('token', 'harvester-token')
+token    = cfg.get('token', 'password1234')
 
 install  = s.get('install', {}) or {}
 device   = install.get('device', '/dev/vda')
@@ -68,6 +78,23 @@ vip_mode = install.get('vip_mode', 'dhcp')
 
 os.makedirs('data/harvester', exist_ok=True)
 os.makedirs('data/tftpboot', exist_ok=True)
+
+def _copy(src_key, dest_path):
+    """Copy a local file into data/harvester/ (or data/tftpboot/) if the path is set."""
+    src = str(s.get(src_key, '') or '').strip()
+    if not src:
+        return
+    if not os.path.isfile(src):
+        print(f"  ✗  {src_key}: '{src}' not found — skipping", file=sys.stderr)
+        return
+    shutil.copy2(src, dest_path)
+    print(f"  ✓  copied {src}  →  {dest_path}")
+
+_copy('harvester_kernel_path',  f'data/harvester/{kernel_dest}')
+_copy('harvester_ramdisk_path', f'data/harvester/{initrd_dest}')
+_copy('harvester_rootfs_path',  f'data/harvester/{rootfs_dest}')
+_copy('harvester_iso_path',     f'data/harvester/{iso_dest}')
+_copy('undionly_kpxe_path',     'data/tftpboot/undionly.kpxe')
 
 # ── data/harvester/boot.ipxe ───────────────────────────────────────────────
 boot_ipxe = (
@@ -87,7 +114,7 @@ boot_ipxe = (
 
 with open('data/harvester/boot.ipxe', 'w') as f:
     f.write(boot_ipxe)
-print("  \u2713  data/harvester/boot.ipxe")
+print("  ✓  data/harvester/boot.ipxe")
 
 # ── data/harvester/harvester-config.yaml ───────────────────────────────────
 config_lines = [
@@ -115,16 +142,27 @@ if vip:
 
 with open('data/harvester/harvester-config.yaml', 'w') as f:
     f.writelines(config_lines)
-print("  \u2713  data/harvester/harvester-config.yaml")
+print("  ✓  data/harvester/harvester-config.yaml")
 
-print()
-print("Next steps:")
-print(f"  1. Copy Harvester artefacts to data/harvester/:")
-print(f"       harvester-vmlinuz          (rename from harvester-{version}-vmlinuz-amd64)")
-print(f"       harvester-initrd           (rename from harvester-{version}-initrd-amd64)")
-print(f"       harvester-rootfs.squashfs  (rename from harvester-{version}-rootfs-amd64.squashfs)")
-print(f"       harvester-{version}-amd64.iso  (keep original name)")
-print(f"  2. Copy undionly.kpxe \u2192 data/tftpboot/undionly.kpxe")
-print(f"     (download from https://boot.ipxe.org/undionly.kpxe)")
-print(f"  3. Run:  docker compose up --build -d")
+# ── missing-file warnings ──────────────────────────────────────────────────
+missing = []
+for name in [kernel_dest, initrd_dest, rootfs_dest, iso_dest]:
+    if not os.path.isfile(f'data/harvester/{name}'):
+        missing.append(f'data/harvester/{name}')
+if not os.path.isfile('data/tftpboot/undionly.kpxe'):
+    missing.append('data/tftpboot/undionly.kpxe')
+
+if missing:
+    print()
+    print("⚠  The following files are still missing — set their paths in settings.yml")
+    print("   and re-run ./generate-config.sh, or copy them manually:")
+    for m in missing:
+        print(f"     {m}")
+    print()
+    print("   Download URLs:")
+    print(f"     https://github.com/harvester/harvester/releases/tag/{version}")
+    print(f"     https://boot.ipxe.org/undionly.kpxe  (for undionly.kpxe)")
+else:
+    print()
+    print("✓  All artefacts present.  Run:  docker compose up --build -d")
 PYEOF

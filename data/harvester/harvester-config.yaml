@@ -1,5 +1,5 @@
 scheme_version: 1
-token: harvester-token
+token: password1234
 os:
   hostname: harvester-node-0
   password: password1234

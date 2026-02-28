@@ -5,25 +5,36 @@
 # Edit this file, then run:
 #   ./generate-config.sh
 #
-# That will write data/harvester/boot.ipxe and
-# data/harvester/harvester-config.yaml from these values.
+# That will:
+#   • Copy the Harvester artefacts into data/harvester/
+#   • Copy undionly.kpxe into data/tftpboot/
+#   • Write data/harvester/boot.ipxe
+#   • Write data/harvester/harvester-config.yaml
 ##########################################################################
 
-# Harvester release version tag (used to derive default ISO filename)
+# Harvester release version tag (used to name the ISO inside data/harvester/)
 harvester_version: v1.7.1
 
 # IP of the pxe-server container on the Docker bridge.
 # Must match the ipv4_address in docker-compose.yml.
 pxe_server_ip: 192.168.200.2
 
-# Override individual file URLs if you want to pull artefacts from a remote
-# server instead of serving them locally.  Leave commented-out to use the
-# defaults derived from harvester_version and pxe_server_ip.
-#
-# harvester_iso_url:     http://192.168.200.2/harvester-v1.7.1-amd64.iso
-# harvester_kernel_url:  http://192.168.200.2/harvester-vmlinuz
-# harvester_ramdisk_url: http://192.168.200.2/harvester-initrd
-# harvester_rootfs_url:  http://192.168.200.2/harvester-rootfs.squashfs
+# ---------------------------------------------------------------------------
+# Local file paths for Harvester artefacts.
+# generate-config.sh copies each file into data/harvester/ using the
+# standard name expected by boot.ipxe and harvester-config.yaml.
+# Leave a path as "" to skip that copy step (e.g. if the file is
+# already in place).
+# ---------------------------------------------------------------------------
+harvester_kernel_path:  ""   # e.g. /downloads/harvester-v1.7.1-vmlinuz-amd64
+harvester_ramdisk_path: ""   # e.g. /downloads/harvester-v1.7.1-initrd-amd64
+harvester_rootfs_path:  ""   # e.g. /downloads/harvester-v1.7.1-rootfs-amd64.squashfs
+harvester_iso_path:     ""   # e.g. /downloads/harvester-v1.7.1-amd64.iso
+
+# Local path to the iPXE bootloader binary.
+# generate-config.sh copies it to data/tftpboot/undionly.kpxe.
+# Download from https://boot.ipxe.org/undionly.kpxe if you don't have it.
+undionly_kpxe_path: ""   # e.g. /downloads/undionly.kpxe
 
 # Node configuration
 harvester_config:
@@ -32,7 +43,7 @@ harvester_config:
   # Change this to a strong password before deploying in any non-local environment.
   password: password1234
   # Static token used for cluster join authentication (same on all nodes).
-  token: harvester-token
+  token: password1234
 
 # Install settings
 install:
