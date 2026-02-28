@@ -10,9 +10,10 @@ token: harvester-token
 
 os:
   # Hostname for this node
-  hostname: harvester-node01
-  # Password for the 'rancher' user — CHANGE THIS before use
-  password: CHANGE_ME
+  hostname: harvester-node-0
+  # Password for the 'rancher' user.
+  # Change this to a strong password before deploying in any non-local environment.
+  password: password1234
   ntp_servers:
     - 0.suse.pool.ntp.org
 

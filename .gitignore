@@ -1,0 +1,8 @@
+# Harvester binary artefacts — too large to commit
+data/harvester/harvester-vmlinuz
+data/harvester/harvester-initrd
+data/harvester/*.squashfs
+data/harvester/*.iso
+
+# iPXE bootloader binary
+data/tftpboot/undionly.kpxe
